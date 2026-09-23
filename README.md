@@ -1,200 +1,72 @@
 # 柏宝绘 · SillyTavern 剧情配图助手（anima 魔改版）
 
-> 本仓库是 [baibai-git/ST-BaiBai-Image](https://github.com/baibai-git/ST-BaiBai-Image) 的 fork，为「NAI 形状的 ComfyUI 转发站」（如 latent.moe 这类后端实际跑 anima / ComfyUI 工作流的站点）做了一个提示词规范开关。原插件的功能、安装方式、公开接口见下文原文，全部保持不变。
+基于 [baibai-git/ST-BaiBai-Image](https://github.com/baibai-git/ST-BaiBai-Image) 的 fork。原插件功能全部保留，额外为「NAI 形状的 ComfyUI 转发站」（如 latent.moe：接口是 NAI 协议、后端实际跑 anima / ComfyUI 工作流）做了一个提示词规范开关，并按实卡实测持续加固提示词规范。
 
-## 本 fork 改了什么
+## 这个 fork 改了什么
 
-### 0.3.1 / 0.3.2：ComfyUI 规范 / 思维链实卡实测加固
-
-用真实卡（都市异能卡「现代唯我独法」）在酒馆里连跑多楼，逐楼用视觉模型（GLM-5.3 逐项核对）验收出图，按「同类问题重复 ≥3 次即修」的规则对 `DEFAULT_COMFY_SPEC` / `DEFAULT_COMFY_THINKING` 做了针对性加固：
-
-**新增条款**
-
-- **视线**：单人画面禁止 `looking at another`（画面里没有第二个人时模型会画飘或凭空加人）；单人看物件改用动作词 + `looking down`
-- **景别**：同一次任务多张图必须给出至少两种景别；思维链 E 段的 P 列表要写成 `P2=核心动作@景别`，写完全同则当场重排
-- **槽间硬差异**：入选各图之间必须能指出不同时间点 / 地点 / 人物组合 / 核心动作，同机位只换景别不算
-- **瞳色是硬事实**：tag 与角色档案一字不差，nl 必须用 `black-eyed` 式复合词复述一次（渲染模型常把 black eyes 画成蓝眼）
-- **单人防路人**：餐厅 / 超市 / 街道等公共场所的近景，主动加 `depth of field`、`blurred background` 把背景人物压成色块
-- **接触类动作**：写明「哪只手 + 接触什么 + 完成态」——`a fork speared through the toast`、`already in her open hands`、`his right foot pressing flat on the floor`；只写进行态会被画成悬停未完成
-- **单侧肢体**：必须写明 left / right 并在 nl 复述（模型经常画反）
-- **悬浮物**：必须写明与手和地面的分离（`floating in mid-air, away from his hand`），否则被画成手持或放置
-- **配件与版型**：发长 / 袖型 / 发夹 / 眼镜必须写具体词并在 nl 复述（`shoulder-length hair`、`sleeveless hoodie`、`a black claw clip holding her shoulder-length hair`、`glasses on head`）——含糊或省略会被渲染模型自行改写（无袖变长袖、发夹消失、及肩变长发）
-- **素色服装禁印花**：白 / 黑 T 恤等素色衣物不得出现印花、图案、logo、文字（`plain white t-shirt` + `without any print or text`）
-- **文字载体**：屏幕 / 海报 / 招牌 / 纸盒一律 `blank screen`、`textless poster`、`plain box`，nl 写明 `without any text or lettering`
-- **面部细节**：档案 / 正文给出的黑眼圈、疲惫感、疤痕等必须进 tag 并在 nl 复述
-- **手部完整入画**：核心动作涉及手部时，整只手必须完整框进画面，手被裁切视为景别不合格
-
-**0.3.2 追加（第二轮实卡验收，同类问题重复 ≥3 次触发）**
-
-- **左右手只在剧情必需时指定**：实测渲染模型对左右手翻车率极高（要求右手实画左手），非必需一律写 `his hand` / `her hand`
-- **素色服装防印花**：tag 写 `plain` + `solid color`（只写 plain 不够），nl 写 `plain unadorned white t-shirt without any print, graphic or text`；通用负面层追加 `graphic print, print on clothes, text on clothes, book text`
-- **书籍/纸张防伪文字**：书脊写 `blank book spines`、书页写 `textless pages`；图书馆/书房镜头优先中远景或虚化，禁止书脊特写
-- **道具形态与佩戴方式**：`pink portable neck fan around her neck`、`a small wool brush in his hand`、`backpack slung over his right shoulder only`——不写清形态与佩戴方式，渲染模型会自行改造（挂脖风扇消失、毛刷变粉扑、单肩包变双肩背）
-
-**实测效果（改前 → 改后）**
-
-| 指标 | 改前 | 改后 |
-|---|---|---|
-| 单人画面误用 looking at another | 33%（7/21 块） | 6%（2/32 块） |
-| 每楼景别唯一数（多样性） | 1.57 | 2.09 |
-| medium shot 占比 | 76% | 59% |
-
-严格验收（GLM-5.3 逐项核对）均分：**美学 4.4 / 忠实 3.2~3.7**。剩余扣分集中在渲染模型自身能力边界：左右手、递接完成态、悬浮表现、文字乱码、精细姿态（鼓腮 / 后仰）。
-
-**⚠ 一个容易踩的配置陷阱（负面词解析链）**
-
-负面词按 `配方（画师串）绑定值 → 渠道覆盖值 → 内置默认` 解析，**前一级非空则后面全部失效**。内置默认里的 5-full 通用层已包含 `logo, too many watermarks, text, watermark, signature, username, artist name, bad anatomy, bad hands, extra fingers ...`，但只要画师串绑定了自己的负面词（哪怕只有几个词），这一整层就被顶掉——实测中签名水印与乱码反复出现正是这个原因。建议：画师串负面词并入通用层内容，或留空以回落默认。
-
-
-### 新增：NAI 面板「提示词规范」下拉（默认参数区）
-
-两个选项：
+### 1. NAI 面板「提示词规范」开关
 
 | 选项 | 行为 | 适用 |
 |---|---|---|
-| **NAI 规范(官方/兼容站)** | 与上游完全一致：按 NAI 4.5/V5 规范产出 Base Prompt + 原生 Character Prompts（`characters[]` 数组） | NovelAI 官方、真 NAI 协议兼容站 |
-| **ComfyUI 规范(转发站/anima)** | 自动写 tag 时改按 ComfyUI 规范，产出单串 tag + 一段连贯英文自然语言（nl），**不再产 `characters[]`** | 后端实际是 ComfyUI 工作流的 NAI 形状转发站 |
+| **NAI 规范（官方/兼容站）** | 与上游一致：Base Prompt + 原生 Character Prompts（`characters[]`） | NovelAI 官方、真 NAI 协议兼容站 |
+| **ComfyUI 规范（转发站/anima）** | 产出单串 tag + 一段连贯英文自然语言（nl），**不产 `characters[]`** | 后端实际是 ComfyUI 工作流的转发站 |
 
-### 为什么要加这个开关
+**为什么需要**：上游把角色提示放进 `v4_prompt.caption.char_captions`，转发站不解析这个结构，而是把 `input` 整串塞给固定工作流——Base tag、画师串、各角色 tag/nl 全被拍平成一条混杂长串。切到 ComfyUI 规范后，实际发出的 `input` 是干净三段：`[画师串], [画面 tag], [质量词]. [自然语言]`。
 
-上游按 NAI 协议把 Character Prompts 放进 `v4_prompt.caption.char_captions` 发给端点。实测 latent.moe 这类转发站**不解析这个结构**，而是把 `input` 字段整串塞给一个固定的 ComfyUI 工作流——于是 Base tag、画师串、Base nl、每个角色的 tag/nl 全部被拍平成一条逗号句号混杂的长串，NAI 精心分好的多角色结构信息整块丢失。
+**配套一致性**：切规范时思维链同步换成 ComfyUI 版；建档 nl 校验豁免；`supportsCharacters` 报 false；强制开启 nl。
 
-切换到 ComfyUI 规范后，实际发出的 `input` 变成干净的三段：
+### 2. 实卡实测加固（规范 / 思维链默认值）
+
+用真实卡在酒馆连跑多楼、逐楼用视觉模型（GLM-5.3）按提示词逐项验收，按「同类问题重复 ≥3 次即修」的规则加固：
+
+- **视线**：单人画面禁止 `looking at another`；单人看物件改用动作词 + `looking down`
+- **景别**：同任务多张图必须至少两种景别；思维链 E 段 P 列表写成 `P2=核心动作@景别`
+- **槽间硬差异**：各图必须能指出不同时间点 / 地点 / 人物组合 / 核心动作
+- **瞳色硬事实**：tag 与档案一字不差，nl 用 `black-eyed` 式复合词复述
+- **单人防路人**：公共场所近景加 `depth of field` / `blurred background` 压掉背景人物
+- **接触类动作**：写明「哪只手 + 接触什么 + 完成态」（`a fork speared through the toast`、`already in her open hands`）
+- **左右手**：只在剧情必需时指定（渲染模型左右翻车率高，非必需写 `his hand`）
+- **悬浮物**：写明与手和地面的分离（`floating in mid-air, away from his hand`）
+- **配件与版型**：发长 / 袖型 / 发夹 / 眼镜 / 道具佩戴方式必须写具体词并在 nl 复述
+- **素色服装**：`plain` + `solid color`（+ 材质词、blank front），禁印花图案文字
+- **文字载体**：屏幕 / 海报 / 纸盒 / 书页 / 围裙一律 `blank` / `textless` / `plain`，避免近景特写
+- **面部细节**：黑眼圈、疲惫感等档案细节必须进 tag 并在 nl 复述
+- **手部**：涉及手部的核心动作，整只手必须完整入画
+
+实测（改前 → 改后）：单人误用 `looking at another` 33% → 6%；每楼景别唯一数 1.57 → 2.09；`medium shot` 占比 76% → 59%。严格验收均分：美学 4.4 / 忠实 3.2~3.7（剩余扣分集中在渲染模型能力边界：文字乱码、精细姿态、道具形态）。
+
+### 3. 负面词层修复
+
+负面词解析链是 `配方（画师串）绑定值 → 渠道覆盖值 → 内置默认`，**前一级非空则后面整层失效**。画师串一旦绑定自己的负面词，内置通用层（`logo, watermark, signature, text, bad hands, extra fingers ...`）会被顶掉——实测中签名水印与乱码反复出现正是这个原因。本 fork 的 5-full 通用层额外补了 `graphic print, print on clothes, text on clothes, book text`。
+
+> 补充结论（实测）：签名水印来自画师串风格自带，停用画师串即消失；而衣物印花/伪文字属渲染模型自身先验，提示词与负面词只能压制、无法根除。
+
+## 安装
+
+酒馆「扩展 → 安装扩展」填入本仓库地址：
 
 ```
-[画师串], [Base tag], [质量词]. [Base 自然语言]
+https://github.com/Selena-xy/ST-BaiBai-Image-anima
 ```
 
-例如同一段剧情，上游格式发出去是 843 字符的拍平串；本 fork 的 ComfyUI 规范格式是 359 字符的「tag + nl」两段。anima / Qwen 系模型本就擅长吃自然语言长描述，这个形态与它们更匹配。
+装好后进「设置 → 渠道」配置出图渠道（本地 ComfyUI 或 NovelAI 账号），确认「自动生成 tag」开关已开即可。若目标是 ComfyUI 转发站，把「提示词规范」切到 **ComfyUI 规范**。
 
-### 配套一致性改动
-
-切到 ComfyUI 规范时，这些地方会同步跟着变，避免自相矛盾：
-
-- **思维链同步切换**：NAI 思维链（`DEFAULT_NAI_V5_THINKING`）的槽位块要求填 `characters[]`，切规范后改用 ComfyUI 思维链（`DEFAULT_COMFY_THINKING`）——规范没教过的字段不该被思维链要求。
-- **建档 nl 校验豁免**：上游对 NAI 4.5/V5 硬性要求「建档必须附带 nl 外貌描述」，该要求只对 `characters[]` 协议成立；ComfyUI 规范下不再校验，避免一次正常输出被误判失败白白重试。
-- **`supportsCharacters` 报 false**：让卡片 UI 与第三方公开 API 正确知道多角色提示已停用，防止手滑传了 `characters` 又被拼进 `char_captions`。
-- **强制开启 nl**：该格式的价值就在 tag+nl 两段，nl 关不掉。
-
-### 明确没改的东西
-
-- **出图请求协议**：照旧走 `POST {base}/ai/generate-image`，zip 响应解包等逻辑与上游一致——只改「提示词文本怎么写」，不改「请求怎么发」。
-- **角色固定外貌库**：由 `changes` 机制维护，与 `characters[]` 无关，建档 / 永久变化 / 按位置生效 / 回滚全部照常。
-- **画师串、质量词、种子、尺寸、vibe 等参数**：一律不动。
-- **存量设置兼容**：老配置没有 `promptFormat` 键时回落 `'nai'`，升级前后行为完全一致；默认值也是 `'nai'`，不切就等于上游。
-
-### 已知未验证 / 限制
-
-- 「实际发出的 input 是否为新格式」基于源码推演，未在真实酒馆会话中抓包验证；装好后可在浏览器 F12 → Network 里看 `generate-image` 请求体确认。
-- ComfyUI 规范下多人画面改用 tag 内「发色称谓绑定」写法（如 `white dress on green hair girl`），这套写法对具体某个转发站背后的模型是否优于拍平串，只能实出图对比。
-- 转发站普遍把尺寸/步数/采样器/CFG 写死在服务端工作流里，这些参数在本 fork 与上游一样不生效——这是站点行为，不是插件能解决的。
-
-### 与上游同步
+## 与上游同步
 
 ```bash
 git remote add upstream https://github.com/baibai-git/ST-BaiBai-Image.git
 git fetch upstream
-git merge upstream/main   # 冲突大概率出在 prompt.ts / settings.ts / NaiPanel.vue / runner.ts / generate.ts
+git merge upstream/main   # 冲突大概率在 prompt.ts / settings.ts / NaiPanel.vue / runner.ts / generate.ts
 pnpm install && pnpm build
 ```
 
-改动点集中在 5 个文件，上游若重构这些区域需要手动合：
+## 构建
 
-| 文件 | 改动 |
-|---|---|
-| `src/state/settings.ts` | `NaiSettings.promptFormat: 'nai' \| 'comfy'` 字段 + 默认值 + normalize |
-| `src/autoTag/prompt.ts` | 导出 `naiComfyFormatOn()`；`backendPromptSpec` / `backendThinkingPrompt` 增加 comfy 分支；`charPromptsOn` 取代裸 `naiCharPromptsOn` |
-| `src/autoTag/runner.ts` | 建档 nl 硬校验前加 `!naiComfyFormatOn(settings)` 豁免 |
-| `src/generate.ts` | `supportsCharacters` 增加 `promptFormat !== 'comfy'` 条件 |
-| `src/pages/backend/panels/NaiPanel.vue` | 「默认参数」新增提示词规范下拉（`PROMPT_FORMAT_OPTIONS`） |
-
----
-
-# 以下为原插件 README（内容未改）
-
-# 柏宝绘 · SillyTavern 剧情配图助手
-
-> 让 AI 的每一段精彩剧情都有画面。柏宝绘会一边陪你聊，一边默默判断「这一幕值不值得画」，自动挑选最值得定格的瞬间、写好生图提示词，再交给出图渠道生成图片，直接嵌进楼层里。全程自动，也可随时手动接管。
-
-光有文字的故事总觉得少了点什么——角色长什么样、战斗场面有多燃、告白那一刻的光线，都只能靠脑补。柏宝绘就是为了把「脑补」变成「亲眼看到」而生的：它不打扰你聊天，只在恰到好处的时候递上一张图。
-
----
-
-## 它能做什么
-
-### 🖼️ 自动配图，精彩瞬间不错过
-- **自动分析剧情**：每次 AI 回复后，柏宝绘会通读这段剧情，判断有没有值得画的瞬间——有就画，没有就安静跳过，绝不刷屏。
-- **自动编写提示词**：英文正向 tag、画面描述、画幅方向、负面词全都自动写好，你几乎不用碰提示词。
-- **一次多张**：想多要几张也可以，单次最多可规划多张图，按剧情节奏依次生成。
-- **手动接管**：想指定某一楼出图？点楼层上的「生成 tag」按钮即可；写好的 tag 也会直接显示在图片卡片上，随时能看能改。
-
-### 🎭 角色固定外貌库：外貌永不漂移
-- **首次出场自动建档**：有名有姓的正式角色第一次出场，柏宝绘会自动记下他的发色、瞳色、体型等固定外貌，之后每一张图里的他都长一个样。
-- **只报名字，不抄外貌**：AI 在提示词里只需写「@角色名」，插件会机械替换成档案里最新、最准确的外貌——彻底杜绝「这一楼金发、下一楼黑发」的漂移问题。
-- **永久变化自动更新**：角色染发、剪发、留疤、长大……这些永久变化会被自动记进档案，且**按剧情位置生效**：变化之前的图片用旧外貌，变化之后用新外貌，时间线不错乱。
-- **临时状态不混淆**：假发、湿身、包扎这类临时状态不会污染档案，但同一场景里会持续保持，直到剧情解除。
-- **手动编辑与回滚**：档案随时可以手动修改、删除；每次 AI 的自动变更都有记录，一键回滚。
-- **全局角色库**：玩家角色等「哪个聊天都用同一张脸」的角色，在角色管理页一键「提升为全局」——之后所有聊天自动生效，无需重复建档。全局角色是冻结档案：AI 永远不会修改它，完全由你手动维护；某个聊天想让他不一样，复制回本聊天即可覆盖。
-
-### 🎨 出图渠道：ComfyUI 与 NovelAI
-- **ComfyUI**：两种配置方式任选——**简易参数**模式直接选模型/LoRA、填步数等基础参数即可出图（内置 Checkpoint 系/Flux/Anima 模板，模型列表一键从 ComfyUI 拉取）；**自定义工作流**模式加载你自己的 API 工作流模板，占位符自动填充 tag、描述与尺寸，节点怎么连不用操心——**AI 会自动定位**该填哪个节点、哪些片段要保留，应用前还能预览改动。
-- **多套工作流随时切换**：常用的工作流可以各存一套、各起名字，下拉一点就换。自然语言开关与横竖尺寸都跟着工作流走——二次元底模和 Flux 之间来回切，不用再逐项改设置。
-- **NovelAI**：官方 v3 / v4 / v5 系列模型；支持 vibe 参考图（角色风、画风参考）；`.naiv4vibe` 文件与官方互通，导入导出都行。
-- **NAI 多接入点随时切换**：官方站与各个第三方站可以各存一条、各起名字、各记各的 Key，下拉一点就换。换站只换出口——模型、采样器、尺寸、vibe、画师串这些参数全部照旧，不用重配一遍。官方那条是内置的，地址固定不用填。
-- **渠道灵活**：可以指派专门的副 API 渠道去跑生图，不占用主对话；不配置就跟随主 API。
-- **画师串随时切换**：常用的画风/画师组合可以各存一套、各起名字，下拉一点就换，也可以选「不使用」。选中的画师串会拼在提示词最前面，整幅画的画风基调一次定好。
-- **负面词、质量词智能默认**：每个模型都有官方推荐的质量词与负面词，点开就能看到实际生效的内容；想改就改，改完会标记「已自定义」，随时一键恢复默认。
-
-### 📁 图片管理，随聊随存
-- **内嵌楼层卡片**：生成好的图片直接嵌在对应楼层下方，与剧情一一对应。
-- **点击放大、长按保存**：灯箱查看大图，长按图片即可保存到本地。
-- **重新生成与取消**：对某张图不满意，点一下重绘（同提示词再出一张）；觉得提示词写得不到位，打开铅笔（编辑提示词）弹窗，里面既可以自己改，也可以点「AI 重写提示词」让它重读剧情把这一张的提示词重写一遍再出图——只动这一张，同楼其它图片不受影响。重写期间可以放心关掉弹窗，生成不会中断，回头再打开还能接着看；想整楼重新选画面则用消息 ⋯ 菜单里的调色盘按钮。生成中也可以随时取消，不浪费额度。
-- **智能队列**：多张图排队生成，并发数可调，不会把渠道挤爆。
-- **可选 JPG 转存**：需要更小的文件体积时，可让 PNG 自动转存为 JPG。
-
-### 🤝 与柏宝书无缝协作
-- 柏宝绘读取柏宝书的角色状态与剧情记忆，让配图与「此刻的剧情」严丝合缝。
-- 不想被某段内容打扰？**排除名单与柏宝书共享**——按角色、按世界书整本或按条目名排除，两端同步，一处设置两边生效。
-
-### ⚙️ 想调多细都行
-- **提示词全可编辑**：破限、生图规范、思维链、预填充……每一套都有内置默认，也可全部自定义。
-- **多主题界面**：自动跟随 SillyTavern 配色，手机、平板、电脑都顺手。
-- **自动更新**：有新版时导航栏亮起小红点，设置页一键更新并自动刷新。
-
----
-
-## 安装
-
-在 SillyTavern 的「扩展 → 安装扩展」里填入本仓库地址即可：
-
-```
-https://github.com/baibai-git/ST-BaiBai-Image
+```bash
+pnpm install
+pnpm build      # vite build + 自动同步 manifest 版本号
 ```
 
-安装后进入「设置」页：先到「渠道」页配置出图渠道（本地 ComfyUI 或 NovelAI 账号），再确认「自动生成 tag」开关已打开，就可以开始自动配图了。设置会随 SillyTavern 保存在服务器，跨设备自动同步。
+## License
 
----
-
-## 小贴士
-
-- **开箱即用**：默认设置下，只要配好出图渠道，AI 每聊一段就会自动配图；不想自动出图、只想先写 tag 的，关掉「自动生成图片」开关即可。
-- **角色外貌库是自动维护的**：你不用预先录入任何角色，第一次出场时插件会自动建档；想微调再进「角色管理」页动手。固定用的角色（比如玩家）可以「提升为全局」，换个聊天也不用重新建档。
-- **ComfyUI 用户**：不想碰工作流 JSON 的话，用「简易参数」模式选个模型就能出图；有自己的工作流则用 AI 自动配置功能跑通一次，之后一直复用。有多套常用配置的，存成多套随时切换。
-- **NovelAI 用户**：vibe 参考图不是必须的，但能让画风/角色更稳定；`.naiv4vibe` 文件与官方互通。
-- **图片数据跟着聊天走**：删聊天即删对应图片数据，隐私可控。
-
----
-
-## 给插件作者
-
-柏宝绘开放了一套公开接口（`globalThis.STBaiBaiImage`），别的插件可以：
-
-- **读角色库**：拿到柏宝绘已记录的角色和可直接出图的 tag；
-- **调柏宝绘出图**：后端配置、并发闸门、限流退避、图库归档全都复用，**图显示在哪由你决定**——
-  画在侧边栏、画在自己的弹窗里都行，生成的图不会进入任何聊天记录。
-
-详见 **[PUBLIC_API.md](./PUBLIC_API.md)**。
-
----
-
-作者：柏柏 · 欢迎反馈与建议。
+与上游一致（见 LICENSE）。
