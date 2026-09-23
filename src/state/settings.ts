@@ -466,7 +466,7 @@ tag（JSON 的 tag 键）：danbooru 短 tag——英文小写、逗号分隔的
 从重要到次要排列：人数/主体 → 镜头构图 → 外貌 → 服饰 → 动作姿态 → 表情视线 → 场景 → 光线氛围；单个画面控制在 40 个 tag 以内。
 动作姿态内部再排：本画面核心动作（谁做了什么、身体部位接触了什么）必须是动作区第一条独立短 tag；辅助姿态（坐着、站着、跪着等）排后面。同一动作词不得重复写两遍。
 凡是用工具的核心动作(叉举/勺吃/筷子夹/递物),tag 与 nl 都必须写明工具与对象的直接物理接触方式:a fork speared through the toast、the spoon at her lips、placing the tray into her open palms——渲染模型极易画出"工具悬空/换手托"的错误交互,接触方式不写明必错。
-涉及单侧肢体(左手/右手/左脚/右脚)的动作,必须写明 left/right,nl 用 his right hand、her left foot 完整复述——渲染模型经常画反左右,不写明必反。
+涉及单侧肢体(左手/右手/左脚/右脚)的动作,必须写明 left/right,nl 用 his right hand、her left foot 完整复述。⚠ 但左右手只在剧情确实必需时(如伤在左手、左手持物右手空出)才指定;非必需一律写 his hand、her hand——渲染模型对左右手的翻车率极高(实测多张要求右手实画左手),不必需的指定等于自找失分。
 接触类动作(拿/按/递/接/擦/踩)必须写清"哪只手+接触什么+完成态":递接写 the object already in her open hands(对象已在对方手中),踩写 his right foot pressing flat on the floor,按写 his right index finger pressing the mouse button——只写"递/按"的进行态会被画成悬停未完成。
 悬浮/飞行物必须写明与身体和地面的分离:floating in mid-air, away from his hand、no contact with the ground——不写分离会被画成手持或放置。
 瞳色是硬事实:tag 里瞳色词必须与角色档案/给定信息一字不差,nl 中必须以复合词形式复述一次(如 black-eyed、blue-eyed)——渲染模型常把 black eyes 画成蓝眼彩眼,nl 复述是唯一牵制手段,不得省略。
@@ -483,6 +483,7 @@ tag（JSON 的 tag 键）：danbooru 短 tag——英文小写、逗号分隔的
 - 原创角色不写身份 tag；无法从角色卡、世界书或正文可靠确定作品时不得猜测作品名，按原创角色处理。
 - 角色固定外貌库条目的 fandom 字段只作档案记录，画图时不照抄它；同人身份 tag 一律按本规范现场判定并转义。
 配件与版型必须写具体词并在 nl 复述一次,含糊或省略都会被渲染模型自行改写:发长写 shoulder-length hair(不要只写 hair)、袖型写 sleeveless hoodie(不要只写 hoodie)、发夹写 a black claw clip holding her shoulder-length hair、眼镜写 thick black-framed glasses on head。无袖变长袖、发夹消失、及肩变长发都是这样产生的。
+道具同理要写形态与佩戴方式:pink portable neck fan around her neck、a small wool brush in his hand、black nylon backpack slung over his right shoulder only——不写清"挂在哪/怎么拿",渲染模型会自行改造(挂脖风扇消失、毛刷变粉扑、单肩包变双肩背)。
 
 多人画面（两人及以上）额外规则：
 - 人数 tag 必须明确（2girls、1boy 1girl 等）；缺了模型会漏画或多画。
@@ -541,8 +542,9 @@ tag（JSON 的 tag 键）：danbooru 短 tag——英文小写、逗号分隔的
 两人同框不等于必须横屏。方向必须与 tag 里的镜头词一致（wide shot 通常配 landscape，close-up / upper body 通常配 portrait）。
 
 通用要求：
-- 素色服装(白T恤、黑T恤等)不得出现任何印花、图案、logo、文字:tag 不写图案词,nl 写 plain white t-shirt 强调,并加 without any print or text。
+- 素色服装(白T恤、黑T恤等)不得出现任何印花、图案、logo、文字:tag 写 plain + solid color(如 plain white crew neck t-shirt, solid color),nl 写 plain unadorned white t-shirt 并加 without any print, graphic or text。实测渲染模型给白T恤加胸口印花的倾向很强,只写 plain 不够,必须 solid color 与负面词双管。
 画面尽量避免文字载体;必须出现屏幕/海报/招牌/纸盒时,tag 用 blank screen、textless poster、plain box,nl 写明 without any text or lettering。
+书籍/书页/书架场景同理:书脊写 blank book spines、plain book covers,书页写 textless pages,避免近景拍书脊文字;图书馆/书房镜头优先用中远景或虚化处理,不要给书脊特写。
 档案/正文给出的面部细节(黑眼圈、疲惫感、疤痕、眼镜)必须写进 tag 并在 nl 复述,如 with dark circles under her eyes。
 不写质量词（masterpiece、best quality 之类）、不写负面内容。
 - 一律使用英文。`;
@@ -715,7 +717,9 @@ E. 选段
    - 单侧肢体动作写明了 left/right;接触类动作写明了完成态(已在对方手中/踩实地面/按压到底);悬浮物写明了与手和地面的分离。
    - 配件(发夹/眼镜/包)与版型(袖型/发长/裤长)在 tag 和 nl 各出现了一次,没有省略或含糊。
    - 素色服装没有任何印花/图案/文字;画面中的屏幕/海报/纸盒都是无文字处理(blank/textless/plain)。
-   - 涉及手部的核心动作,整只手都在画框内。
+   - 涉及手部的核心动作,整只手都在画框内;左右手只在剧情必需时才指定,非必需已写成 his hand/her hand。
+   - 素色服装已写 solid color 且 nl 声明无印花;书籍/书页已按 blank/textless 处理。
+   - 道具写清了形态与佩戴方式(挂脖风扇戴在颈上、背包单肩挂、手持工具的形态)。
    - 这一层只核对、不改决定：发现问题就在落 tag 时直接改对，不要在思考里写出「超限，需精简」「让位」「改为」这类修订过程。张数在 E 段就已经定死，这里不该再变。
    - 每个同人角色的 tag 串里都有 B 段定下的 character name \\(copyright name\\) 身份 tag（人数/构图之后、普通外貌之前，括号已转义），原创角色没有被误加作品名。
    - 若本图协议含 negative 键：negative 已逐词对照本图的 tag 与 nl，凡是能在其中找到对应内容的词都已删掉，没有抵消正文已成立的事实；拿不准的已留空。协议不含 negative 键时本项直接跳过。

@@ -4,7 +4,7 @@
 
 ## 本 fork 改了什么
 
-### 0.3.1：ComfyUI 规范 / 思维链实卡实测加固
+### 0.3.1 / 0.3.2：ComfyUI 规范 / 思维链实卡实测加固
 
 用真实卡（都市异能卡「现代唯我独法」）在酒馆里连跑多楼，逐楼用视觉模型（GLM-5.3 逐项核对）验收出图，按「同类问题重复 ≥3 次即修」的规则对 `DEFAULT_COMFY_SPEC` / `DEFAULT_COMFY_THINKING` 做了针对性加固：
 
@@ -23,6 +23,13 @@
 - **文字载体**：屏幕 / 海报 / 招牌 / 纸盒一律 `blank screen`、`textless poster`、`plain box`，nl 写明 `without any text or lettering`
 - **面部细节**：档案 / 正文给出的黑眼圈、疲惫感、疤痕等必须进 tag 并在 nl 复述
 - **手部完整入画**：核心动作涉及手部时，整只手必须完整框进画面，手被裁切视为景别不合格
+
+**0.3.2 追加（第二轮实卡验收，同类问题重复 ≥3 次触发）**
+
+- **左右手只在剧情必需时指定**：实测渲染模型对左右手翻车率极高（要求右手实画左手），非必需一律写 `his hand` / `her hand`
+- **素色服装防印花**：tag 写 `plain` + `solid color`（只写 plain 不够），nl 写 `plain unadorned white t-shirt without any print, graphic or text`；通用负面层追加 `graphic print, print on clothes, text on clothes, book text`
+- **书籍/纸张防伪文字**：书脊写 `blank book spines`、书页写 `textless pages`；图书馆/书房镜头优先中远景或虚化，禁止书脊特写
+- **道具形态与佩戴方式**：`pink portable neck fan around her neck`、`a small wool brush in his hand`、`backpack slung over his right shoulder only`——不写清形态与佩戴方式，渲染模型会自行改造（挂脖风扇消失、毛刷变粉扑、单肩包变双肩背）
 
 **实测效果（改前 → 改后）**
 
