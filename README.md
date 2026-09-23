@@ -1,3 +1,75 @@
+# 柏宝绘 · SillyTavern 剧情配图助手（anima 魔改版）
+
+> 本仓库是 [baibai-git/ST-BaiBai-Image](https://github.com/baibai-git/ST-BaiBai-Image) 的 fork，为「NAI 形状的 ComfyUI 转发站」（如 latent.moe 这类后端实际跑 anima / ComfyUI 工作流的站点）做了一个提示词规范开关。原插件的功能、安装方式、公开接口见下文原文，全部保持不变。
+
+## 本 fork 改了什么
+
+### 新增：NAI 面板「提示词规范」下拉（默认参数区）
+
+两个选项：
+
+| 选项 | 行为 | 适用 |
+|---|---|---|
+| **NAI 规范(官方/兼容站)** | 与上游完全一致：按 NAI 4.5/V5 规范产出 Base Prompt + 原生 Character Prompts（`characters[]` 数组） | NovelAI 官方、真 NAI 协议兼容站 |
+| **ComfyUI 规范(转发站/anima)** | 自动写 tag 时改按 ComfyUI 规范，产出单串 tag + 一段连贯英文自然语言（nl），**不再产 `characters[]`** | 后端实际是 ComfyUI 工作流的 NAI 形状转发站 |
+
+### 为什么要加这个开关
+
+上游按 NAI 协议把 Character Prompts 放进 `v4_prompt.caption.char_captions` 发给端点。实测 latent.moe 这类转发站**不解析这个结构**，而是把 `input` 字段整串塞给一个固定的 ComfyUI 工作流——于是 Base tag、画师串、Base nl、每个角色的 tag/nl 全部被拍平成一条逗号句号混杂的长串，NAI 精心分好的多角色结构信息整块丢失。
+
+切换到 ComfyUI 规范后，实际发出的 `input` 变成干净的三段：
+
+```
+[画师串], [Base tag], [质量词]. [Base 自然语言]
+```
+
+例如同一段剧情，上游格式发出去是 843 字符的拍平串；本 fork 的 ComfyUI 规范格式是 359 字符的「tag + nl」两段。anima / Qwen 系模型本就擅长吃自然语言长描述，这个形态与它们更匹配。
+
+### 配套一致性改动
+
+切到 ComfyUI 规范时，这些地方会同步跟着变，避免自相矛盾：
+
+- **思维链同步切换**：NAI 思维链（`DEFAULT_NAI_V5_THINKING`）的槽位块要求填 `characters[]`，切规范后改用 ComfyUI 思维链（`DEFAULT_COMFY_THINKING`）——规范没教过的字段不该被思维链要求。
+- **建档 nl 校验豁免**：上游对 NAI 4.5/V5 硬性要求「建档必须附带 nl 外貌描述」，该要求只对 `characters[]` 协议成立；ComfyUI 规范下不再校验，避免一次正常输出被误判失败白白重试。
+- **`supportsCharacters` 报 false**：让卡片 UI 与第三方公开 API 正确知道多角色提示已停用，防止手滑传了 `characters` 又被拼进 `char_captions`。
+- **强制开启 nl**：该格式的价值就在 tag+nl 两段，nl 关不掉。
+
+### 明确没改的东西
+
+- **出图请求协议**：照旧走 `POST {base}/ai/generate-image`，zip 响应解包等逻辑与上游一致——只改「提示词文本怎么写」，不改「请求怎么发」。
+- **角色固定外貌库**：由 `changes` 机制维护，与 `characters[]` 无关，建档 / 永久变化 / 按位置生效 / 回滚全部照常。
+- **画师串、质量词、种子、尺寸、vibe 等参数**：一律不动。
+- **存量设置兼容**：老配置没有 `promptFormat` 键时回落 `'nai'`，升级前后行为完全一致；默认值也是 `'nai'`，不切就等于上游。
+
+### 已知未验证 / 限制
+
+- 「实际发出的 input 是否为新格式」基于源码推演，未在真实酒馆会话中抓包验证；装好后可在浏览器 F12 → Network 里看 `generate-image` 请求体确认。
+- ComfyUI 规范下多人画面改用 tag 内「发色称谓绑定」写法（如 `white dress on green hair girl`），这套写法对具体某个转发站背后的模型是否优于拍平串，只能实出图对比。
+- 转发站普遍把尺寸/步数/采样器/CFG 写死在服务端工作流里，这些参数在本 fork 与上游一样不生效——这是站点行为，不是插件能解决的。
+
+### 与上游同步
+
+```bash
+git remote add upstream https://github.com/baibai-git/ST-BaiBai-Image.git
+git fetch upstream
+git merge upstream/main   # 冲突大概率出在 prompt.ts / settings.ts / NaiPanel.vue / runner.ts / generate.ts
+pnpm install && pnpm build
+```
+
+改动点集中在 5 个文件，上游若重构这些区域需要手动合：
+
+| 文件 | 改动 |
+|---|---|
+| `src/state/settings.ts` | `NaiSettings.promptFormat: 'nai' \| 'comfy'` 字段 + 默认值 + normalize |
+| `src/autoTag/prompt.ts` | 导出 `naiComfyFormatOn()`；`backendPromptSpec` / `backendThinkingPrompt` 增加 comfy 分支；`charPromptsOn` 取代裸 `naiCharPromptsOn` |
+| `src/autoTag/runner.ts` | 建档 nl 硬校验前加 `!naiComfyFormatOn(settings)` 豁免 |
+| `src/generate.ts` | `supportsCharacters` 增加 `promptFormat !== 'comfy'` 条件 |
+| `src/pages/backend/panels/NaiPanel.vue` | 「默认参数」新增提示词规范下拉（`PROMPT_FORMAT_OPTIONS`） |
+
+---
+
+# 以下为原插件 README（内容未改）
+
 # 柏宝绘 · SillyTavern 剧情配图助手
 
 > 让 AI 的每一段精彩剧情都有画面。柏宝绘会一边陪你聊，一边默默判断「这一幕值不值得画」，自动挑选最值得定格的瞬间、写好生图提示词，再交给出图渠道生成图片，直接嵌进楼层里。全程自动，也可随时手动接管。
