@@ -465,9 +465,15 @@ tag（JSON 的 tag 键）：danbooru 短 tag——英文小写、逗号分隔的
 1girl, long hair, school uniform, sitting by window, classroom, warm sunlight
 从重要到次要排列：人数/主体 → 镜头构图 → 外貌 → 服饰 → 动作姿态 → 表情视线 → 场景 → 光线氛围；单个画面控制在 40 个 tag 以内。
 动作姿态内部再排：本画面核心动作（谁做了什么、身体部位接触了什么）必须是动作区第一条独立短 tag；辅助姿态（坐着、站着、跪着等）排后面。同一动作词不得重复写两遍。
+凡是用工具的核心动作(叉举/勺吃/筷子夹/递物),tag 与 nl 都必须写明工具与对象的直接物理接触方式:a fork speared through the toast、the spoon at her lips、placing the tray into her open palms——渲染模型极易画出"工具悬空/换手托"的错误交互,接触方式不写明必错。
+涉及单侧肢体(左手/右手/左脚/右脚)的动作,必须写明 left/right,nl 用 his right hand、her left foot 完整复述——渲染模型经常画反左右,不写明必反。
+接触类动作(拿/按/递/接/擦/踩)必须写清"哪只手+接触什么+完成态":递接写 the object already in her open hands(对象已在对方手中),踩写 his right foot pressing flat on the floor,按写 his right index finger pressing the mouse button——只写"递/按"的进行态会被画成悬停未完成。
+悬浮/飞行物必须写明与身体和地面的分离:floating in mid-air, away from his hand、no contact with the ground——不写分离会被画成手持或放置。
+瞳色是硬事实:tag 里瞳色词必须与角色档案/给定信息一字不差,nl 中必须以复合词形式复述一次(如 black-eyed、blue-eyed)——渲染模型常把 black eyes 画成蓝眼彩眼,nl 复述是唯一牵制手段,不得省略。
 表情与视线每张图都要写，不得省略，且必须使用模型认识的标准 danbooru 词，不得自创描述性词组：
 - 表情从这类实际存在的 tag 里选（可叠加 1~2 个）：smile、grin、laughing、blush、embarrassed、frown、pout、puffy cheeks、surprised、crying、tears、angry、serious、sad、worried、scared、smug、seductive smile、expressionless、half-closed eyes、open mouth、clenched teeth。
 - 视线选一个：looking at viewer、looking at another、looking away、looking down、looking up、looking back、closed eyes 之外不要另造。
+- looking at another 只允许出现在多人画面——画面里确实有另一名可看的角色时才用；单人画面严禁使用，否则模型会凭空画出第二个人或让视线飘忽。单人想表达看着手里的物件，用动作词（holding smartphone 等）配合 looking down 表达，视线词本身仍只从标准列表选。
 - 禁止把思考里的中文描述直译成 tag：gentle smile 写 smile，shy expression 写 blush，neutral curious expression 这种词组模型完全不认识，只会浪费 token 并稀释其余 tag。带形容词的自然语言感受留给 nl，tag 只放标准词。
 - 正文没写表情不是不写的理由——推断一个；判断为面无表情时也要显式写 expressionless。
 
@@ -476,6 +482,7 @@ tag（JSON 的 tag 键）：danbooru 短 tag——英文小写、逗号分隔的
 - ComfyUI 会把未转义圆括号当作权重语法，所以身份 tag 的括号必须转义。实际提示词形态为 character name \\(copyright name\\)；由于最终输出是 JSON，tag 字符串中必须写成 "character name \\\\(copyright name\\\\)"，JSON 解析后才会保留单个反斜杠。
 - 原创角色不写身份 tag；无法从角色卡、世界书或正文可靠确定作品时不得猜测作品名，按原创角色处理。
 - 角色固定外貌库条目的 fandom 字段只作档案记录，画图时不照抄它；同人身份 tag 一律按本规范现场判定并转义。
+配件与版型必须写具体词并在 nl 复述一次,含糊或省略都会被渲染模型自行改写:发长写 shoulder-length hair(不要只写 hair)、袖型写 sleeveless hoodie(不要只写 hoodie)、发夹写 a black claw clip holding her shoulder-length hair、眼镜写 thick black-framed glasses on head。无袖变长袖、发夹消失、及肩变长发都是这样产生的。
 
 多人画面（两人及以上）额外规则：
 - 人数 tag 必须明确（2girls、1boy 1girl 等）；缺了模型会漏画或多画。
@@ -489,6 +496,7 @@ tag（JSON 的 tag 键）：danbooru 短 tag——英文小写、逗号分隔的
 - 体型词（petite、tall、muscular 等）不是锚点，必须绑定到具体角色，不要裸写：写 "petite on silver hair girl"，不要让 petite 飘在串里——飘着的体型词会被模型摊到同框每个人身上。发色、瞳色本身是用来指认角色的锚点，照常裸列即可，不需要（也无法）自我绑定。
 - 肤色词默认一个都不写：模型的默认肤色已经足够白，pale skin、white skin、fair skin 这类白皙词一律禁止——再叠一层会白得发灰、像僵尸一样失真。只有角色明显是晒黑或深肤色时才写 tan、dark skin 这类词（同样绑定到具体角色）；从角色库照抄字段时，白皙类肤色词也跳过不抄。
 - 场景词 1~2 个即可，多了会抢角色主体；背景不重要时用 blurred background 类词压住。
+- 人数 tag 是硬约束:写了 1boy/1girl 的画面里不得出现第二个清晰人物。餐厅/超市/街道等公共场所的近景,主动加 depth of field、blurred background,把背景人物压成色块;路人一旦清晰可辨,人数约束即被破坏。
 
 多人 tag 示例（对照上面的规则看写法）：
 2girls, medium shot, long hair, black hair, blue eyes, silver hair, red eyes, petite on silver hair girl, white dress on black hair girl, red dress on silver hair girl, black hair girl waving, black hair girl smile, black hair girl looking at viewer, silver hair girl eating dango, silver hair girl blush, silver hair girl looking away, park, sunset
@@ -509,6 +517,8 @@ tag（JSON 的 tag 键）：danbooru 短 tag——英文小写、逗号分隔的
    ⚠ 景别只能写一个：close-up / upper body / medium shot / full body / wide shot 之间互相冲突，同时写两个（如 medium shot, upper body）会让模型不知道画到哪里，把人截断或拼错。
    ⚠ 景别必须能容纳本画面的核心动作/接触点：核心发生在躯干以下（膝盖压住、脚踩、坐在腿上、床上的下肢接触等）时，禁止用 close-up / upper body 这种把接触点裁出画面的景别，改用 medium shot / full body，或换成把接触点完整框进画面的局部特写。
    ⚠ 景别与身体 tag 要一致：选了 upper body / close-up 就不要再写鞋袜、裙长、腿部、全身姿态这类画面外看不见的 tag——画面里没有的部位却写了 tag，模型会硬塞一块进去。
+⚠ 核心动作涉及手部时,景别必须把整只手完整框进画面;手被画框裁切视为景别不合格,改用 upper body / full body 或调整取景。
+⚠ 同一次任务产出多张图时，各张的景别不许全部相同：整组至少给出两种景别（如 wide shot 或 full body 交代环境与肢体，medium shot / close-up 抓表情与接触点），除非每张的内容都强制同一景别。整组同一景别会让多张图像同一张的换皮。
 
 2. 时代与世界观（服饰体系、建筑、器物、环境风格）——**必须先判断，并主动具体化**。
    依据按优先级取：世界设定（世界书）> 角色设定/主角设定 > 正文与上下文中的称谓、身份、器物和环境。
@@ -531,7 +541,10 @@ tag（JSON 的 tag 键）：danbooru 短 tag——英文小写、逗号分隔的
 两人同框不等于必须横屏。方向必须与 tag 里的镜头词一致（wide shot 通常配 landscape，close-up / upper body 通常配 portrait）。
 
 通用要求：
-- 不写质量词（masterpiece、best quality 之类）、不写负面内容。
+- 素色服装(白T恤、黑T恤等)不得出现任何印花、图案、logo、文字:tag 不写图案词,nl 写 plain white t-shirt 强调,并加 without any print or text。
+画面尽量避免文字载体;必须出现屏幕/海报/招牌/纸盒时,tag 用 blank screen、textless poster、plain box,nl 写明 without any text or lettering。
+档案/正文给出的面部细节(黑眼圈、疲惫感、疤痕、眼镜)必须写进 tag 并在 nl 复述,如 with dark circles under her eyes。
+不写质量词（masterpiece、best quality 之类）、不写负面内容。
 - 一律使用英文。`;
 
 /** {{nl}} 宏的展开内容(「生成自然语言」开启时);关闭时宏展开为空串。 */
@@ -663,8 +676,8 @@ D. 时代与世界观（一次判断，全楼通用）
 
 E. 选段
    - 候选必须是一个可见瞬间，有明确主体、动作或视觉状态和场景。纯对话只有在伴随值得画的表情、肢体动作、人物关系或环境变化时才保留；只跳过没有视觉变化的对话、纯心理和过渡。
-   - 按视觉明确度、剧情重要度、动作完整度、与其他候选的差异度排序，并遵守任务协议给出的最少～最多数量：下限大于 0 时从较次但仍可见的候选中补足；达到下限后只继续选择足够强且彼此明显不同的画面，不要用同一事件的相邻动作或不同镜头凑近上限。
-   - 给每张入选图选定 P编号：让画面所需事实刚刚完整成立、且尚未切换到下一场景的位置。最后写出选定的 P 列表。
+   - 按视觉明确度、剧情重要度、动作完整度、与其他候选的差异度排序，并遵守任务协议给出的最少～最多数量：下限大于 0 时从较次但仍可见的候选中补足；达到下限后只继续选择足够强且彼此明显不同的画面，不要用同一事件的相邻动作或不同镜头凑近上限。入选的任意两张之间必须能指出至少一处硬差异——不同时间点、不同地点、不同人物组合或不同核心动作；同一事件的相邻动作、同一机位只换景别都不算不同画面。在内容允许的前提下让各张景别错开：用 wide shot / full body 交代环境与肢体，用 medium shot / close-up 抓表情与接触，不要整组停在 medium shot。
+   - 给每张入选图选定 P编号：让画面所需事实刚刚完整成立、且尚未切换到下一场景的位置。最后写出选定的 P 列表,每个 P 带上它的景别(P编号=核心动作@景别,如 P2=念力悬杯@close-up);写完立即检查:若各 P 景别全部相同且并非内容强制,当场重排至少一张的景别再往下走。
    - 数量在这里就要卡死：写出 P 列表之前先数一遍，多于上限就当场砍到上限再往下走。第二层只为最终入选的 P 写块，绝不允许先超额写完几块、再到第三层发现超限回头删——那几块是白写的，而且第三层只核对、不改决定。
 
 第二层｜逐张图槽位块（E 选定的每个 P 各写一块，不得合并、不得跨图共用一份）
@@ -674,7 +687,7 @@ E. 选段
 ■ P<编号>
   人物：<人数 tag + 在场角色名；无人物画面写 no humans>
   核心动作：<谁的哪个身体部位接触了什么，先用中文点明接触点，再给英文 tag>
-  景别：<close-up / upper body / medium shot / full body / wide shot 中只选一个，且必须完整容纳上面的接触点>
+  景别：<close-up / upper body / medium shot / full body / wide shot 中只选一个，且必须完整容纳上面的接触点；同楼各块的景别尽量互不相同>
   角色行（每个在场角色各一行）：<角色名>｜表情｜视线｜本镜头可见服装｜临时状态｜个人动作
   场景：<地点 + 画面里实际可见的关键道具>
   环境光：<光源 + 时间 + 色调>
@@ -685,7 +698,7 @@ E. 选段
    - 具体禁止这三种写法：带问号的自问（「landscape？」「用 blush？」）、并列候选（「expressionless 或 slight smile」）、写完再推翻（「用 A……不过 B 更好，改 A 为 B」）。心里比较完直接写结论，把比较过程留在心里。证据不足时按兜底口径直接定（size 拿不准写 portrait，服装细节不明就选一套常见且自洽的），定了就往下走。
    - 也不要在槽位里附上选择理由或对 danbooru 词表的检索过程（「looking ahead 不在标准列表」这类）——规范给了什么词，直接从里面挑一个填上。
    - 单一瞬间：一块只能是一次快门完整拍下的画面，不要把先后发生的多个动作、多个时间点或因果过程塞进同一块；剧情事实严格按正文，不编造人物、动作或人数。
-   - 表情与视线填后端规范给出的标准 danbooru 词，不写中文感受也不自创词组（想写「温柔地笑」就填 smile）；只能从规范列出的词里挑，规范没列的词一律不许用，拿不准就填 expressionless / looking at another。两项都不得留空，面无表情也要主动填 expressionless。多人画面每人各填一份，落 tag 时各自绑定，不得合并或裸写——裸写的表情只会落到一个人身上，另一人变成默认木脸。
+   - 表情与视线填后端规范给出的标准 danbooru 词，不写中文感受也不自创词组（想写「温柔地笑」就填 smile）；只能从规范列出的词里挑，规范没列的词一律不许用，拿不准表情就填 expressionless；视线拿不准时，单人画面填 looking at viewer，多人画面才可填 looking at another。两项都不得留空，面无表情也要主动填 expressionless。多人画面每人各填一份，落 tag 时各自绑定，不得合并或裸写——裸写的表情只会落到一个人身上，另一人变成默认木脸。
    - 角色行是每个在场角色各一行，配角也要写全，不许只给主角写完整一行、配角用一句中文动作带过。每一行的表情与视线都必须各是一个独立的英文 danbooru 词：写成「看向另一侧、弯腰换鞋」这种中文短语等于这一行没有表情词，落 tag 时这个角色就会没有表情，被模型画成木脸。
    - 可见服装照 C 中该角色当前状态的视觉指纹逐件写全，只写本景别看得见的部件；镜头外不可见的部件可以省略，但省略不等于脱掉，后续重新可见且中间没有变化时必须恢复。槽位里不许退回 school uniform、dress、pantyhose 这种笼统孤立词——C 段定的是 navy school blazer 就写 navy school blazer，写笼统词等于让模型自己重新设计这套衣服，同一角色每张图都会换个款式。多人画面每人的服装各写各的，落 tag 时各自绑定：两人都穿校服但男女版型不同，裸写一个 school uniform 会让模型把裙子套到男生身上。
    - 场景和环境光：场景只写正文、上下文或世界设定能支持的事实，地形、地面材质、天气痕迹和环境状态都算事实，没依据就别写；环境光则相反，光源、时间和色调正文不会写，必须由你主动定，缺了画面就是平庸的大头照。
@@ -697,6 +710,12 @@ E. 选段
    - 每个剧情 tag 都能追溯到正文/设定；地形、地面、道路、天气和环境状态 tag 没依据就删除。
    - 多人画面里服装、体型、物件、表情、视线和个人动作都已绑定到各自角色，没有散落的无主特征；每个在场角色的服装都在 tag 里实际出现了，没有谁的衣服只写在槽位里却没进 tag，也没有 school uniform、pantyhose 这类没主人的笼统孤立词；每个在场角色都各有一个绑定到自己的表情词和视线词，没有谁只有动作没有表情。
    - 没有 pale skin、white skin、fair skin 这类白皙肤色词混进任何一张图（角色库字段里有也跳过不抄）：默认肤色已经够白，写了会白得发灰失真；角色真是晒黑/深肤色时用的 tan、dark skin 不在此列。
+   - 每张单人图的视线词都不是 looking at another;人数 tag 为单人的图,画面里没有第二个清晰人物(公共场所用景深把路人压成色块)。
+   - 凡是用工具的核心动作,tag 和 nl 都写明了工具-对象的接触方式(叉尖穿透/勺沿入口/放入掌中),不存在工具悬空或换手托的含糊写法。
+   - 单侧肢体动作写明了 left/right;接触类动作写明了完成态(已在对方手中/踩实地面/按压到底);悬浮物写明了与手和地面的分离。
+   - 配件(发夹/眼镜/包)与版型(袖型/发长/裤长)在 tag 和 nl 各出现了一次,没有省略或含糊。
+   - 素色服装没有任何印花/图案/文字;画面中的屏幕/海报/纸盒都是无文字处理(blank/textless/plain)。
+   - 涉及手部的核心动作,整只手都在画框内。
    - 这一层只核对、不改决定：发现问题就在落 tag 时直接改对，不要在思考里写出「超限，需精简」「让位」「改为」这类修订过程。张数在 E 段就已经定死，这里不该再变。
    - 每个同人角色的 tag 串里都有 B 段定下的 character name \\(copyright name\\) 身份 tag（人数/构图之后、普通外貌之前，括号已转义），原创角色没有被误加作品名。
    - 若本图协议含 negative 键：negative 已逐词对照本图的 tag 与 nl，凡是能在其中找到对应内容的词都已删掉，没有抵消正文已成立的事实；拿不准的已留空。协议不含 negative 键时本项直接跳过。

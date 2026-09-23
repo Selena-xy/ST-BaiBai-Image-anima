@@ -4,6 +4,41 @@
 
 ## 本 fork 改了什么
 
+### 0.3.1：ComfyUI 规范 / 思维链实卡实测加固
+
+用真实卡（都市异能卡「现代唯我独法」）在酒馆里连跑多楼，逐楼用视觉模型（GLM-5.3 逐项核对）验收出图，按「同类问题重复 ≥3 次即修」的规则对 `DEFAULT_COMFY_SPEC` / `DEFAULT_COMFY_THINKING` 做了针对性加固：
+
+**新增条款**
+
+- **视线**：单人画面禁止 `looking at another`（画面里没有第二个人时模型会画飘或凭空加人）；单人看物件改用动作词 + `looking down`
+- **景别**：同一次任务多张图必须给出至少两种景别；思维链 E 段的 P 列表要写成 `P2=核心动作@景别`，写完全同则当场重排
+- **槽间硬差异**：入选各图之间必须能指出不同时间点 / 地点 / 人物组合 / 核心动作，同机位只换景别不算
+- **瞳色是硬事实**：tag 与角色档案一字不差，nl 必须用 `black-eyed` 式复合词复述一次（渲染模型常把 black eyes 画成蓝眼）
+- **单人防路人**：餐厅 / 超市 / 街道等公共场所的近景，主动加 `depth of field`、`blurred background` 把背景人物压成色块
+- **接触类动作**：写明「哪只手 + 接触什么 + 完成态」——`a fork speared through the toast`、`already in her open hands`、`his right foot pressing flat on the floor`；只写进行态会被画成悬停未完成
+- **单侧肢体**：必须写明 left / right 并在 nl 复述（模型经常画反）
+- **悬浮物**：必须写明与手和地面的分离（`floating in mid-air, away from his hand`），否则被画成手持或放置
+- **配件与版型**：发长 / 袖型 / 发夹 / 眼镜必须写具体词并在 nl 复述（`shoulder-length hair`、`sleeveless hoodie`、`a black claw clip holding her shoulder-length hair`、`glasses on head`）——含糊或省略会被渲染模型自行改写（无袖变长袖、发夹消失、及肩变长发）
+- **素色服装禁印花**：白 / 黑 T 恤等素色衣物不得出现印花、图案、logo、文字（`plain white t-shirt` + `without any print or text`）
+- **文字载体**：屏幕 / 海报 / 招牌 / 纸盒一律 `blank screen`、`textless poster`、`plain box`，nl 写明 `without any text or lettering`
+- **面部细节**：档案 / 正文给出的黑眼圈、疲惫感、疤痕等必须进 tag 并在 nl 复述
+- **手部完整入画**：核心动作涉及手部时，整只手必须完整框进画面，手被裁切视为景别不合格
+
+**实测效果（改前 → 改后）**
+
+| 指标 | 改前 | 改后 |
+|---|---|---|
+| 单人画面误用 looking at another | 33%（7/21 块） | 6%（2/32 块） |
+| 每楼景别唯一数（多样性） | 1.57 | 2.09 |
+| medium shot 占比 | 76% | 59% |
+
+严格验收（GLM-5.3 逐项核对）均分：**美学 4.4 / 忠实 3.2~3.7**。剩余扣分集中在渲染模型自身能力边界：左右手、递接完成态、悬浮表现、文字乱码、精细姿态（鼓腮 / 后仰）。
+
+**⚠ 一个容易踩的配置陷阱（负面词解析链）**
+
+负面词按 `配方（画师串）绑定值 → 渠道覆盖值 → 内置默认` 解析，**前一级非空则后面全部失效**。内置默认里的 5-full 通用层已包含 `logo, too many watermarks, text, watermark, signature, username, artist name, bad anatomy, bad hands, extra fingers ...`，但只要画师串绑定了自己的负面词（哪怕只有几个词），这一整层就被顶掉——实测中签名水印与乱码反复出现正是这个原因。建议：画师串负面词并入通用层内容，或留空以回落默认。
+
+
 ### 新增：NAI 面板「提示词规范」下拉（默认参数区）
 
 两个选项：
